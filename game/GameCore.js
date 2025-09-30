@@ -38,20 +38,22 @@ class GameCore {
     }
 
     async loadMorty() {
-        const mortyType = this.mortyPath.toLowerCase();
+    const mortyType = this.mortyPath.toLowerCase();
 
-        if (mortyType.includes('classic')) {
-            const { ClassicMorty } = await import('../morties/ClassicMorty.js');
-            this.morty = new ClassicMorty(this.numBoxes);
-        } else if (mortyType.includes('lazy')) {
-            const { LazyMorty } = await import('../morties/LazyMorty.js');
-            this.morty = new LazyMorty(this.numBoxes);
-        } else {
-            const { ClassicMorty } = await import('../morties/ClassicMorty.js');
-            this.morty = new ClassicMorty(this.numBoxes);
-        }
+    if (mortyType.includes('classic')) {
+        const { ClassicMorty } = await import('../morties/ClassicMorty.js');
+        this.morty = new ClassicMorty(this.numBoxes);
+      } else if (mortyType.includes('lazy')) {
+          const { LazyMorty } = await import('../morties/LazyMorty.js');
+          this.morty = new LazyMorty(this.numBoxes);
+      } else if (mortyType.includes('evil')) {
+          const { EvilMorty } = await import('../morties/EvilMorty.js');
+          this.morty = new EvilMorty(this.numBoxes);
+      } else {
+          throw new Error(`Morty type not found: ${this.mortyPath}`);
+      }
 
-        console.log(`Morty type: ${this.morty.name}`);
+      console.log(`Morty type: ${this.morty.name}`);
     }
 
     async playRound() {
