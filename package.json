@@ -1,0 +1,13 @@
+{
+  "name": "rick-morty-game",
+  "version": "1.0.0",
+  "description": "Rick and Morty portal gun game",
+  "main": "main.js",
+  "type": "module",
+  "scripts": {
+    "start": "node main.js"
+  },
+  "dependencies": {
+    "cli-table3": "^0.6.3"
+  }
+}
