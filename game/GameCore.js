@@ -2,7 +2,7 @@ import { ProvablyFairRandomGenerator } from './RandomGenerator.js';
 import { GameStatistics } from './Statistics.js';
 import readline from 'readline';
 
-class GameCore {
+export class GameCore {
     constructor(numBoxes, mortyPath, mortyClassName) {
         this.numBoxes = numBoxes;
         this.mortyPath = mortyPath;
@@ -38,22 +38,22 @@ class GameCore {
     }
 
     async loadMorty() {
-    const mortyType = this.mortyPath.toLowerCase();
+        const mortyType = this.mortyPath.toLowerCase();
 
-    if (mortyType.includes('classic')) {
-        const { ClassicMorty } = await import('../morties/ClassicMorty.js');
-        this.morty = new ClassicMorty(this.numBoxes);
-      } else if (mortyType.includes('lazy')) {
-          const { LazyMorty } = await import('../morties/LazyMorty.js');
-          this.morty = new LazyMorty(this.numBoxes);
-      } else if (mortyType.includes('evil')) {
-          const { EvilMorty } = await import('../morties/EvilMorty.js');
-          this.morty = new EvilMorty(this.numBoxes);
-      } else {
-          throw new Error(`Morty type not found: ${this.mortyPath}`);
-      }
+        if (mortyType.includes('classic')) {
+            const { ClassicMorty } = await import('../morties/ClassicMorty.js');
+            this.morty = new ClassicMorty(this.numBoxes);
+        } else if (mortyType.includes('lazy')) {
+            const { LazyMorty } = await import('../morties/LazyMorty.js');
+            this.morty = new LazyMorty(this.numBoxes);
+        } else if (mortyType.includes('evil')) {
+            const { EvilMorty } = await import('../morties/EvilMorty.js');
+            this.morty = new EvilMorty(this.numBoxes);
+        } else {
+            throw new Error(`Morty type not found: ${this.mortyPath}`);
+        }
 
-      console.log(`Morty type: ${this.morty.name}`);
+        console.log(`Morty type: ${this.morty.name}`);
     }
 
     async playRound() {
@@ -62,20 +62,35 @@ class GameCore {
 
         console.log(`\n=== ROUND STARTED ===`);
 
+        // 1. PORTAL GUN HMAC (HMAC1)
         const hmac1 = randomGen1.generateMortyValue(this.numBoxes);
         console.log(`Morty: HMAC1 = ${hmac1}`);
-        console.log(`Morty: Rick, enter your number [0,${this.numBoxes - 1}]:`);
+        console.log(`Morty: Rick, enter your number for portal gun hiding [0,${this.numBoxes - 1}]:`);
 
         const rickValue1 = await this.getNumberInput(0, this.numBoxes - 1);
         const portalGunBox = randomGen1.getFinalValue(rickValue1, this.numBoxes);
 
+        // 2. RICK QUTINI TANLAYDI
         console.log(`\nMorty: OK, I hid the portal gun. Which box do you think it's in? [0,${this.numBoxes - 1}]`);
         const selectedBox = await this.getNumberInput(0, this.numBoxes - 1);
 
-        const remainingBoxes = await this.morty.removeBoxes(selectedBox, portalGunBox, randomGen2);
+        // 3. BOX KEEPING HMAC (HMAC2) - YANGI: Rick input bilan
+        console.log(`\nMorty: Now I need to decide which box to keep...`);
+
+        // Qolgan qutilar soni (N-1)
+        const remainingCount = this.numBoxes - 1;
+        const hmac2 = randomGen2.generateMortyValue(remainingCount);
+        console.log(`Morty: HMAC2 = ${hmac2}`);
+        console.log(`Morty: Rick, enter your number for box selection [0,${remainingCount - 1}]:`);
+
+        const rickValue2 = await this.getNumberInput(0, remainingCount - 1);
+
+        // Morty qutilarni olib tashlaydi (HMAC2 dan foydalanib)
+        const remainingBoxes = await this.morty.removeBoxes(selectedBox, portalGunBox, randomGen2, rickValue2);
 
         console.log(`\nMorty: Remaining boxes: ${remainingBoxes.join(', ')}`);
 
+        // 4. RICK TANLOV QILADI
         console.log(`\nMorty: Do you want to switch your box?`);
         console.log(`0 - Switch to another box (${remainingBoxes.find(b => b !== selectedBox)})`);
         console.log(`1 - Keep your box (${selectedBox})`);
@@ -84,13 +99,20 @@ class GameCore {
         const finalChoice = switchChoice === 0 ?
             remainingBoxes.find(b => b !== selectedBox) : selectedBox;
 
+        // 5. NATIJALARNI KO'RSATISH
         const didWin = finalChoice === portalGunBox;
 
         console.log(`\n=== RESULT ===`);
         const secrets1 = randomGen1.revealSecrets();
+        const secrets2 = randomGen2.revealSecrets();
+
         console.log(`Morty: My 1st random value: ${secrets1.mortyValue}`);
         console.log(`Morty: Key1: ${secrets1.secretKey}`);
         console.log(`Morty: So the 1st fair number: (${rickValue1} + ${secrets1.mortyValue}) % ${this.numBoxes} = ${portalGunBox}`);
+
+        console.log(`Morty: My 2nd random value: ${secrets2.mortyValue}`);
+        console.log(`Morty: Key2: ${secrets2.secretKey}`);
+        console.log(`Morty: So the 2nd fair number: (${rickValue2} + ${secrets2.mortyValue}) % ${remainingCount} = [kept box]`);
 
         console.log(`\nMorty: The portal gun was in box ${portalGunBox}!`);
         console.log(`Morty: You selected box ${finalChoice}!`);
@@ -137,5 +159,3 @@ class GameCore {
         });
     }
 }
-
-export { GameCore };
