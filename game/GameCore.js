@@ -1,6 +1,8 @@
 import { ProvablyFairRandomGenerator } from './RandomGenerator.js';
 import { GameStatistics } from './Statistics.js';
 import readline from 'readline';
+import { fileURLToPath } from 'url';
+import path from 'path';
 
 export class GameCore {
     constructor(numBoxes, mortyPath, mortyClassName) {
@@ -38,22 +40,35 @@ export class GameCore {
     }
 
     async loadMorty() {
-        const mortyType = this.mortyPath.toLowerCase();
+        try {
+            let mortyPath = this.mortyPath;
 
-        if (mortyType.includes('classic')) {
-            const { ClassicMorty } = await import('../morties/ClassicMorty.js');
-            this.morty = new ClassicMorty(this.numBoxes);
-        } else if (mortyType.includes('lazy')) {
-            const { LazyMorty } = await import('../morties/LazyMorty.js');
-            this.morty = new LazyMorty(this.numBoxes);
-        } else if (mortyType.includes('evil')) {
-            const { EvilMorty } = await import('../morties/EvilMorty.js');
-            this.morty = new EvilMorty(this.numBoxes);
-        } else {
-            throw new Error(`Morty type not found: ${this.mortyPath}`);
+            if (mortyPath.startsWith('./') || mortyPath.startsWith('../')) {
+                const __filename = fileURLToPath(import.meta.url);
+                const __dirname = path.dirname(__filename);
+                mortyPath = path.resolve(__dirname, '..', mortyPath);
+            }
+
+            const mortyModule = await import(mortyPath);
+
+            let MortyClass;
+            if (this.mortyClassName && this.mortyClassName !== 'default') {
+                MortyClass = mortyModule[this.mortyClassName];
+            } else {
+                MortyClass = mortyModule.default || Object.values(mortyModule)[0];
+            }
+
+            if (!MortyClass) {
+                throw new Error(`Morty class not found: ${this.mortyClassName} in ${this.mortyPath}`);
+            }
+
+            this.morty = new MortyClass(this.numBoxes);
+
+            console.log(`Morty type: ${this.morty.name}`);
+
+        } catch (error) {
+            throw new Error(`Failed to load Morty from ${this.mortyPath}: ${error.message}`);
         }
-
-        console.log(`Morty type: ${this.morty.name}`);
     }
 
     async playRound() {

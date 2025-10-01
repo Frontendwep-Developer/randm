@@ -11,12 +11,12 @@ export class Arguments {
             throw new Error("Number of boxes must be an integer greater than 2.");
         }
 
-        const mortyName = args[1];
-        const mortyClassName = args[2] || mortyName;
+        const mortyPath = args[1];
+        const mortyClassName = args[2] || 'default';
 
         return {
             numBoxes,
-            mortyPath: mortyName,
+            mortyPath,
             mortyClassName
         };
     }
