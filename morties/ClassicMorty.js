@@ -6,8 +6,7 @@ export class ClassicMorty extends BaseMorty {
         this.name = "Classic Morty";
     }
 
-    async removeBoxes(selectedBox, portalGunBox, randomGenerator) {
-
+    async removeBoxes(selectedBox, portalGunBox, randomGenerator, rickValue2) {
         const remainingBoxes = [selectedBox];
 
         const otherBoxes = Array.from({length: this.numBoxes}, (_, i) => i)
@@ -17,17 +16,15 @@ export class ClassicMorty extends BaseMorty {
             otherBoxes.push(portalGunBox);
         }
 
-        const hmac2 = randomGenerator.generateMortyValue(otherBoxes.length);
-        console.log(`Morty: HMAC2 = ${hmac2}`);
-        console.log(`Morty: I'm generating a fair random number to decide which box to keep...`);
-
-        const mortyRandomValue = Math.floor(Math.random() * otherBoxes.length);
-        const keptBoxIndex = randomGenerator.getFinalValue(mortyRandomValue, otherBoxes.length);
+        const keptBoxIndex = randomGenerator.getFinalValue(rickValue2, otherBoxes.length);
         const keptBox = otherBoxes[keptBoxIndex];
 
-        console.log(`Morty: I'll keep box ${keptBox} based on the fair random generation`);
+        if (!remainingBoxes.includes(keptBox)) {
+            remainingBoxes.push(keptBox);
+        }
 
-        remainingBoxes.push(keptBox);
+        console.log(`Morty: I'll keep box ${keptBox} based on fair random generation`);
+
         return remainingBoxes;
     }
 
