@@ -7,20 +7,27 @@ export class ClassicMorty extends BaseMorty {
     }
 
     async removeBoxes(selectedBox, portalGunBox, randomGenerator, rickValue2) {
+        // Har doim 2 ta quti qaytarish kerak
         const remainingBoxes = [selectedBox];
 
-        const otherBoxes = Array.from({length: this.numBoxes}, (_, i) => i)
-            .filter(box => box !== selectedBox);
+        // Boshqa barcha qutilarni olish
+        const allBoxes = Array.from({length: this.numBoxes}, (_, i) => i);
+        const otherBoxes = allBoxes.filter(box => box !== selectedBox);
 
-        if (!otherBoxes.includes(portalGunBox)) {
-            otherBoxes.push(portalGunBox);
-        }
-
+        // HMAC2 dan foydalanib qutini tanlash
         const keptBoxIndex = randomGenerator.getFinalValue(rickValue2, otherBoxes.length);
         const keptBox = otherBoxes[keptBoxIndex];
 
-        if (!remainingBoxes.includes(keptBox)) {
+        // Ikkinchi qutini qo'shish (agar takrorlanmas bo'lsa)
+        if (keptBox !== selectedBox) {
             remainingBoxes.push(keptBox);
+        } else {
+            // Agar tanlangan quti bo'lsa, boshqa qutini tanlash
+            const availableBoxes = otherBoxes.filter(box => box !== keptBox);
+            if (availableBoxes.length > 0) {
+                const alternativeBox = availableBoxes[0];
+                remainingBoxes.push(alternativeBox);
+            }
         }
 
         console.log(`Morty: I'll keep box ${keptBox} based on fair random generation`);
