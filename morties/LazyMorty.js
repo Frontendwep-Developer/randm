@@ -6,25 +6,27 @@ export class LazyMorty extends BaseMorty {
         this.name = "Lazy Morty";
     }
 
-    async removeBoxes(selectedBox, portalGunBox, randomGenerator) {
-        const remainingBoxes = [selectedBox];
+    async removeBoxes(selectedBox, portalGunBox, randomGenerator, rickValue2) {
+    const remainingBoxes = [selectedBox];
 
-        const otherBoxes = Array.from({length: this.numBoxes}, (_, i) => i)
-            .filter(box => box !== selectedBox)
-            .sort((a, b) => a - b);
+    const otherBoxes = Array.from({length: this.numBoxes}, (_, i) => i)
+        .filter(box => box !== selectedBox)
+        .sort((a, b) => a - b);
 
-        if (!otherBoxes.includes(portalGunBox)) {
-            otherBoxes.push(portalGunBox);
-            otherBoxes.sort((a, b) => a - b);
-        }
-
-        const keptBox = otherBoxes[0];
-        remainingBoxes.push(keptBox);
-
-        console.log(`Morty: I kept box ${keptBox} because... ah, I'm too tired.`);
-
-        return remainingBoxes;
+    if (!otherBoxes.includes(portalGunBox)) {
+        otherBoxes.push(portalGunBox);
+        otherBoxes.sort((a, b) => a - b);
     }
+
+    const keptBoxIndex = randomGenerator.getFinalValue(rickValue2, otherBoxes.length);
+    const keptBox = otherBoxes[keptBoxIndex];
+
+    remainingBoxes.push(keptBox);
+
+    console.log(`Morty: I kept box ${keptBox} because... ah, I'm too tired.`);
+
+    return remainingBoxes;
+}
 
     calculateProbability(didSwitch) {
         return 0.5;
