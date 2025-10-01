@@ -62,7 +62,6 @@ export class GameCore {
 
         console.log(`\n=== ROUND STARTED ===`);
 
-        // 1. PORTAL GUN HMAC (HMAC1)
         const hmac1 = randomGen1.generateMortyValue(this.numBoxes);
         console.log(`Morty: HMAC1 = ${hmac1}`);
         console.log(`Morty: Rick, enter your number for portal gun hiding [0,${this.numBoxes - 1}]:`);
@@ -70,14 +69,11 @@ export class GameCore {
         const rickValue1 = await this.getNumberInput(0, this.numBoxes - 1);
         const portalGunBox = randomGen1.getFinalValue(rickValue1, this.numBoxes);
 
-        // 2. RICK QUTINI TANLAYDI
         console.log(`\nMorty: OK, I hid the portal gun. Which box do you think it's in? [0,${this.numBoxes - 1}]`);
         const selectedBox = await this.getNumberInput(0, this.numBoxes - 1);
 
-        // 3. BOX KEEPING HMAC (HMAC2) - YANGI: Rick input bilan
         console.log(`\nMorty: Now I need to decide which box to keep...`);
 
-        // Qolgan qutilar soni (N-1)
         const remainingCount = this.numBoxes - 1;
         const hmac2 = randomGen2.generateMortyValue(remainingCount);
         console.log(`Morty: HMAC2 = ${hmac2}`);
@@ -85,12 +81,10 @@ export class GameCore {
 
         const rickValue2 = await this.getNumberInput(0, remainingCount - 1);
 
-        // Morty qutilarni olib tashlaydi (HMAC2 dan foydalanib)
         const remainingBoxes = await this.morty.removeBoxes(selectedBox, portalGunBox, randomGen2, rickValue2);
 
         console.log(`\nMorty: Remaining boxes: ${remainingBoxes.join(', ')}`);
 
-        // 4. RICK TANLOV QILADI
         console.log(`\nMorty: Do you want to switch your box?`);
         console.log(`0 - Switch to another box (${remainingBoxes.find(b => b !== selectedBox)})`);
         console.log(`1 - Keep your box (${selectedBox})`);
@@ -99,7 +93,6 @@ export class GameCore {
         const finalChoice = switchChoice === 0 ?
             remainingBoxes.find(b => b !== selectedBox) : selectedBox;
 
-        // 5. NATIJALARNI KO'RSATISH
         const didWin = finalChoice === portalGunBox;
 
         console.log(`\n=== RESULT ===`);
