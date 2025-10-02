@@ -3,6 +3,7 @@ import { GameStatistics } from './Statistics.js';
 import readline from 'readline';
 import { fileURLToPath } from 'url';
 import path from 'path';
+import { readFile } from 'fs/promises';
 
 export class GameCore {
     constructor(numBoxes, mortyPath, mortyClassName) {
@@ -41,33 +42,69 @@ export class GameCore {
 
     async loadMorty() {
         try {
-            let mortyPath = this.mortyPath;
-
-            if (mortyPath.startsWith('./') || mortyPath.startsWith('../')) {
-                const __filename = fileURLToPath(import.meta.url);
-                const __dirname = path.dirname(__filename);
-                mortyPath = path.resolve(__dirname, '..', mortyPath);
-            }
-
-            const mortyModule = await import(mortyPath);
-
-            let MortyClass;
-            if (this.mortyClassName && this.mortyClassName !== 'default') {
-                MortyClass = mortyModule[this.mortyClassName];
+            if (this.mortyPath.endsWith('.js')) {
+                await this.loadExternalMorty();
             } else {
-                MortyClass = mortyModule.default || Object.values(mortyModule)[0];
+                await this.loadBuiltInMorty();
             }
-
-            if (!MortyClass) {
-                throw new Error(`Morty class not found: ${this.mortyClassName} in ${this.mortyPath}`);
-            }
-
-            this.morty = new MortyClass(this.numBoxes);
 
             console.log(`Morty type: ${this.morty.name}`);
 
         } catch (error) {
-            throw new Error(`Failed to load Morty from ${this.mortyPath}: ${error.message}`);
+            throw new Error(`Failed to load Morty: ${error.message}`);
+        }
+    }
+
+    async loadExternalMorty() {
+        try {
+            const mortyModule = await import(this.mortyPath);
+            const MortyClass = mortyModule[this.mortyClassName];
+
+            if (!MortyClass) {
+                throw new Error(`Class ${this.mortyClassName} not found in ${this.mortyPath}`);
+            }
+
+            this.morty = new MortyClass(this.numBoxes);
+
+            this.validateMortyInterface(this.morty);
+
+        } catch (error) {
+            throw new Error(`Failed to load external Morty: ${error.message}`);
+        }
+    }
+
+    async loadBuiltInMorty() {
+        const mortyType = this.mortyPath.toLowerCase();
+
+        const builtInMorties = {
+            'classic': '../morties/ClassicMorty.js',
+            'lazy': '../morties/LazyMorty.js',
+            'evil': '../morties/EvilMorty.js'
+        };
+
+        const mortyFile = builtInMorties[mortyType];
+        if (!mortyFile) {
+            throw new Error(`Built-in Morty type not found: ${mortyType}. Available: ${Object.keys(builtInMorties).join(', ')}`);
+        }
+
+        const mortyModule = await import(mortyFile);
+        this.morty = new mortyModule[Object.keys(mortyModule)[0]](this.numBoxes);
+    }
+
+    validateMortyInterface(mortyInstance) {
+        const requiredMethods = [
+            'removeBoxes',
+            'calculateProbability',
+            'getRemarks',
+            'name'
+        ];
+
+        const missingMethods = requiredMethods.filter(method =>
+            typeof mortyInstance[method] !== 'function' && method !== 'name'
+        );
+
+        if (missingMethods.length > 0) {
+            throw new Error(`Morty implementation missing required methods: ${missingMethods.join(', ')}`);
         }
     }
 

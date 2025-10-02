@@ -7,29 +7,29 @@ export class LazyMorty extends BaseMorty {
     }
 
     async removeBoxes(selectedBox, portalGunBox, randomGenerator, rickValue2) {
-    const remainingBoxes = [selectedBox];
+        const remainingBoxes = [selectedBox];
 
-    const otherBoxes = Array.from({length: this.numBoxes}, (_, i) => i)
-        .filter(box => box !== selectedBox)
-        .sort((a, b) => a - b);
+        const allBoxes = Array.from({length: this.numBoxes}, (_, i) => i);
 
-    if (!otherBoxes.includes(portalGunBox)) {
-        otherBoxes.push(portalGunBox);
-        otherBoxes.sort((a, b) => a - b);
+        const otherBoxes = allBoxes.filter(box => box !== selectedBox);
+
+        if (otherBoxes.includes(portalGunBox)) {
+            remainingBoxes.push(portalGunBox);
+        } else {
+            remainingBoxes.push(otherBoxes[0]);
+        }
+
+        console.log(`Morty: I'm too lazy to think... I'll just keep boxes ${remainingBoxes.join(' and ')}`);
+
+        return remainingBoxes;
     }
 
-    const keptBoxIndex = randomGenerator.getFinalValue(rickValue2, otherBoxes.length);
-    const keptBox = otherBoxes[keptBoxIndex];
-
-    remainingBoxes.push(keptBox);
-
-    console.log(`Morty: I kept box ${keptBox} because... ah, I'm too tired.`);
-
-    return remainingBoxes;
-}
-
     calculateProbability(didSwitch) {
-        return 0.5;
+        if (didSwitch) {
+            return (this.numBoxes - 1) / this.numBoxes;
+        } else {
+            return 1 / this.numBoxes;
+        }
     }
 
     getRemarks() {
@@ -37,7 +37,7 @@ export class LazyMorty extends BaseMorty {
             "Uhh, Rick, I'm tired... let's finish this quickly.",
             "Geez, how long is this gonna take? I wanna sleep...",
             "Rick, can we do this tomorrow?",
-            "I'm just opening the closest box because... you know, I'm really tired."
+            "I'm just keeping the obvious boxes... too much work otherwise."
         ];
         return remarks[Math.floor(Math.random() * remarks.length)];
     }
