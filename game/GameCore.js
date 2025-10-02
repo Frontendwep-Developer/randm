@@ -1,9 +1,6 @@
 import { ProvablyFairRandomGenerator } from './RandomGenerator.js';
 import { GameStatistics } from './Statistics.js';
 import readline from 'readline';
-import { fileURLToPath } from 'url';
-import path from 'path';
-import { readFile } from 'fs/promises';
 
 export class GameCore {
     constructor(numBoxes, mortyPath, mortyClassName) {
@@ -42,11 +39,27 @@ export class GameCore {
 
     async loadMorty() {
         try {
-            if (this.mortyPath.endsWith('.js')) {
-                await this.loadExternalMorty();
-            } else {
-                await this.loadBuiltInMorty();
+            let mortyPath = this.mortyPath;
+            let mortyClassName = this.mortyClassName;
+
+            if (!mortyPath.includes('.js')) {
+                mortyPath = `../morties/${mortyPath.charAt(0).toUpperCase() + mortyPath.slice(1)}Morty.js`;
+                mortyClassName = mortyPath.split('/').pop().replace('.js', '');
             }
+            else if (mortyPath.includes('.js') && (!mortyClassName || mortyClassName === 'classic' || mortyClassName === 'lazy' || mortyClassName === 'evil')) {
+                mortyClassName = mortyPath.split('/').pop().replace('.js', '');
+            }
+
+            const mortyModule = await import(mortyPath);
+            const MortyClass = mortyModule[mortyClassName];
+
+            if (!MortyClass) {
+                const availableClasses = Object.keys(mortyModule).join(', ');
+                throw new Error(`Class ${mortyClassName} not found. Available: ${availableClasses}`);
+            }
+
+            this.morty = new MortyClass(this.numBoxes);
+            this.validateMortyInterface(this.morty);
 
             console.log(`Morty type: ${this.morty.name}`);
 
@@ -55,56 +68,14 @@ export class GameCore {
         }
     }
 
-    async loadExternalMorty() {
-        try {
-            const mortyModule = await import(this.mortyPath);
-            const MortyClass = mortyModule[this.mortyClassName];
-
-            if (!MortyClass) {
-                throw new Error(`Class ${this.mortyClassName} not found in ${this.mortyPath}`);
-            }
-
-            this.morty = new MortyClass(this.numBoxes);
-
-            this.validateMortyInterface(this.morty);
-
-        } catch (error) {
-            throw new Error(`Failed to load external Morty: ${error.message}`);
-        }
-    }
-
-    async loadBuiltInMorty() {
-        const mortyType = this.mortyPath.toLowerCase();
-
-        const builtInMorties = {
-            'classic': '../morties/ClassicMorty.js',
-            'lazy': '../morties/LazyMorty.js',
-            'evil': '../morties/EvilMorty.js'
-        };
-
-        const mortyFile = builtInMorties[mortyType];
-        if (!mortyFile) {
-            throw new Error(`Built-in Morty type not found: ${mortyType}. Available: ${Object.keys(builtInMorties).join(', ')}`);
-        }
-
-        const mortyModule = await import(mortyFile);
-        this.morty = new mortyModule[Object.keys(mortyModule)[0]](this.numBoxes);
-    }
-
     validateMortyInterface(mortyInstance) {
-        const requiredMethods = [
-            'removeBoxes',
-            'calculateProbability',
-            'getRemarks',
-            'name'
-        ];
-
+        const requiredMethods = ['removeBoxes', 'calculateProbability', 'getRemarks', 'name'];
         const missingMethods = requiredMethods.filter(method =>
             typeof mortyInstance[method] !== 'function' && method !== 'name'
         );
 
         if (missingMethods.length > 0) {
-            throw new Error(`Morty implementation missing required methods: ${missingMethods.join(', ')}`);
+            throw new Error(`Morty missing methods: ${missingMethods.join(', ')}`);
         }
     }
 
@@ -117,7 +88,6 @@ export class GameCore {
         const hmac1 = randomGen1.generateMortyValue(this.numBoxes);
         console.log(`Morty: HMAC1 = ${hmac1}`);
         console.log(`Morty: Rick, enter your number for portal gun hiding [0,${this.numBoxes - 1}]:`);
-
         const rickValue1 = await this.getNumberInput(0, this.numBoxes - 1);
         const portalGunBox = randomGen1.getFinalValue(rickValue1, this.numBoxes);
 
@@ -125,22 +95,18 @@ export class GameCore {
         const selectedBox = await this.getNumberInput(0, this.numBoxes - 1);
 
         console.log(`\nMorty: Now I need to decide which box to keep...`);
-
         const remainingCount = this.numBoxes - 1;
         const hmac2 = randomGen2.generateMortyValue(remainingCount);
         console.log(`Morty: HMAC2 = ${hmac2}`);
         console.log(`Morty: Rick, enter your number for box selection [0,${remainingCount - 1}]:`);
-
         const rickValue2 = await this.getNumberInput(0, remainingCount - 1);
 
         const remainingBoxes = await this.morty.removeBoxes(selectedBox, portalGunBox, randomGen2, rickValue2);
-
         console.log(`\nMorty: Remaining boxes: ${remainingBoxes.join(', ')}`);
 
         console.log(`\nMorty: Do you want to switch your box?`);
         console.log(`0 - Switch to another box (${remainingBoxes.find(b => b !== selectedBox)})`);
         console.log(`1 - Keep your box (${selectedBox})`);
-
         const switchChoice = await this.getNumberInput(0, 1);
         const finalChoice = switchChoice === 0 ?
             remainingBoxes.find(b => b !== selectedBox) : selectedBox;
@@ -175,7 +141,6 @@ export class GameCore {
         while (true) {
             const input = await this.question(`Rick: `);
             const number = parseInt(input);
-
             if (!isNaN(number) && number >= min && number <= max) {
                 return number;
             }
@@ -194,7 +159,6 @@ export class GameCore {
             switched: this.morty.calculateProbability(true),
             stayed: this.morty.calculateProbability(false)
         };
-
         this.statistics.displayStatistics(theoretical);
     }
 
